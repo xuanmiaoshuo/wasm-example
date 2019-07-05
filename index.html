@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Title</title>
+</head>
+<body>
+<script src="./loader.js"></script>
+<script>
+  // WebAssembly.compile(new Uint8Array(`
+  //   00 61 73 6d  01 00 00 00  01 0c 02 60  02 7f 7f 01
+  //   7f 60 01 7f  01 7f 03 03  02 00 01 07  10 02 03 61
+  //   64 64 00 00  06 73 71 75  61 72 65 00  01 0a 13 02
+  //   08 00 20 00  20 01 6a 0f  0b 08 00 20  00 20 00 6c
+  //   0f 0b`.trim().split(/[\s\r\n]+/g).map(str => parseInt(str, 16)))
+  // )
+  //   .then(module => {
+  //     const instance = new WebAssembly.Instance(module)
+  //     console.log('====module', instance.exports)
+  //     const { add, square } = instance.exports
+  //
+  //     console.log('2 + 4 =', add(2, 4))
+  //     console.log('3^2 =', square(3))
+  //     console.log('(2 + 5)^2 =', square(add(2 + 5)))
+  //
+  //   })
+
+  // loadWebAssembly('./cWasmExample/math.wasm')
+  //   .then(instance => {
+  //     console.log('====instance.exports', instance.exports)
+  //     const square = instance.exports._square
+  //
+  //     console.log('2^2 =', square(2))
+  //     console.log('3^2 =', square(3))
+  //     console.log('(2 + 5)^2 =', square(2 + 5))
+  //   })
+
+  // loadWebAssembly('./asm/asm.wasm')
+  //   .then(instance => {
+  //     console.log('====asm.exports', instance.exports)
+  //     const square = instance.exports.square
+  //
+  //     console.log('2^2 =', square(2))
+  //     console.log('3^2 =', square(3))
+  //     console.log('(2 + 5)^2 =', square(2 + 5))
+  //   })
+
+  <!--  加载文件-> 转成 buffer -> 编译 -> 实例化 -->
+  fetch("./build/optimized.wasm").then(response => response.arrayBuffer())
+    .then(bytes =>
+      WebAssembly.instantiate(bytes, {
+        env: {
+          abort(_msg, _file, line, column) {
+            console.error("abort called at index.ts:" + line + ":" + column);
+          }
+        }
+      })
+    ).then(results => {
+
+    let jsFib = timer(fibonacci, 40)
+    let wasmFib = timer(results.instance.exports.fib, 40)
+    
+    const container = document.createElement("div");
+    container.innerText = "";
+    container.innerText += "jsFib: " + jsFib;
+    container.innerText += "\nwasmFib: " + wasmFib;
+    document.body.appendChild(container);
+  })
+
+  function fibonacci(n) {
+    let i, t, a = 0, b = 1
+    for (i = 0; i < n; i++) {
+      t = a + b;
+      a = b;
+      b = t;
+    }
+    return b;
+  }
+
+  function timer(fn, input) {
+    console.time("timer");
+    let res = fn(input);
+    console.timeEnd("timer");
+    return res
+  }
+</script>
+</body>
+</html>
